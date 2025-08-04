@@ -7,8 +7,6 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-type handler[I, O any] func(ctx context.Context, input *I) (*O, error)
-
 type getTodoInput struct {
 	ID string `path:"id" doc:"ID of the todo to get" example:"123"`
 }
@@ -18,22 +16,22 @@ type getTodoOutput struct {
 	}
 }
 
-func getTodo(store *TodoStore) handler[getTodoInput, getTodoOutput] {
+func getTodo(store *TodoStore) humaHandler[getTodoInput, getTodoOutput] {
 	return func(ctx context.Context, input *getTodoInput) (*getTodoOutput, error) {
 		todo, err := store.GetTodo(ctx, input.ID)
 		if err != nil {
 			return nil, huma.NewError(http.StatusNotFound, err.Error())
 		}
-		resp := new(getTodoOutput)
+		var resp getTodoOutput
 		resp.Body.Todo = todo
-		return resp, nil
+		return &resp, nil
 	}
 }
 
 type createTodoInput struct {
 	Body struct {
 		Name        string `json:"name" doc:"Name of the todo" example:"name"`
-		Description string `json:"description" doc:"Description of todo" example:"description"`
+		Description string `json:"description" doc:"Description of the todo" example:"description"`
 	}
 }
 type createTodoOutput struct {
@@ -42,12 +40,12 @@ type createTodoOutput struct {
 	}
 }
 
-func createTodo(store *TodoStore) handler[createTodoInput, createTodoOutput] {
+func createTodo(store *TodoStore) humaHandler[createTodoInput, createTodoOutput] {
 	return func(ctx context.Context, input *createTodoInput) (*createTodoOutput, error) {
 		todo := store.CreateTodo(ctx, TodoCreate(input.Body))
-		resp := new(createTodoOutput)
+		var resp createTodoOutput
 		resp.Body.Todo = todo
-		return resp, nil
+		return &resp, nil
 	}
 }
 
@@ -64,7 +62,7 @@ type updateTodoOutput struct {
 	}
 }
 
-func updateTodo(store *TodoStore) handler[updateTodoInput, updateTodoOutput] {
+func updateTodo(store *TodoStore) humaHandler[updateTodoInput, updateTodoOutput] {
 	return func(ctx context.Context, input *updateTodoInput) (*updateTodoOutput, error) {
 		todo, err := store.UpdateTodo(ctx, TodoUpdate{
 			ID:          input.ID,
@@ -74,9 +72,9 @@ func updateTodo(store *TodoStore) handler[updateTodoInput, updateTodoOutput] {
 		if err != nil {
 			return nil, huma.NewError(http.StatusNotFound, err.Error())
 		}
-		resp := new(updateTodoOutput)
+		var resp updateTodoOutput
 		resp.Body.Todo = todo
-		return resp, nil
+		return &resp, nil
 	}
 }
 
@@ -84,7 +82,7 @@ type deleteTodoInput struct {
 	ID string `path:"id" doc:"ID of the todo to delete" example:"123"`
 }
 
-func deleteTodo(store *TodoStore) handler[deleteTodoInput, struct{}] {
+func deleteTodo(store *TodoStore) humaHandler[deleteTodoInput, struct{}] {
 	return func(ctx context.Context, input *deleteTodoInput) (*struct{}, error) {
 		err := store.DeleteTodo(ctx, input.ID)
 		if err != nil {

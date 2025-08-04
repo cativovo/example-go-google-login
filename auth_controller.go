@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/markbates/goth/gothic"
 )
+
+var sessionDuration = 7 * 24 * time.Hour
 
 func authCallback(store *SessionStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +79,7 @@ func login() http.HandlerFunc {
 	}
 }
 
-func getUser() http.HandlerFunc {
+func userPage() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		u := userFromContext(r.Context())
 		t, _ := template.New("foo").Parse(userTemplate)

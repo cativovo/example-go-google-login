@@ -9,12 +9,12 @@ import (
 )
 
 type Todo struct {
-	ID          string
-	UserID      string
-	Name        string
-	Description string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          string    `json:"id" doc:"Unique identifier" example:"123"`
+	Name        string    `json:"name" doc:"Name" example:"Read"`
+	Description string    `json:"description" doc:"Description" example:"Read the book of love"`
+	CreatedAt   time.Time `json:"created_at" doc:"Created date"`
+	UpdatedAt   time.Time `json:"updated_at" doc:"Last modified date"`
+	UserID      string    `json:"-"`
 }
 
 type TodoStore struct {
