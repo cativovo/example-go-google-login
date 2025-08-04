@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-const authSession = "auth"
+const AuthSession = "auth"
 
 var errUserNotFound = errors.New("user not found")
 
@@ -22,7 +22,7 @@ func NewSession(s sessions.Store) *SessionStore {
 }
 
 func (ss *SessionStore) GetAuthSession(r *http.Request) (*sessions.Session, error) {
-	return ss.Get(r, authSession)
+	return ss.Get(r, AuthSession)
 }
 
 func (ss *SessionStore) GetUser(r *http.Request) (User, error) {

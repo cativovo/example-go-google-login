@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/gob"
 	"log"
 	"math"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -31,7 +33,7 @@ func init() {
 	// fix for -> securecookie: error - caused by: securecookie: error - caused by: gob: type not registered for interface: main.User
 	gob.Register(User{})
 
-	store = sessions.NewFilesystemStore(os.TempDir(), []byte("goth-example"))
+	store = sessions.NewFilesystemStore("/tmp", []byte("goth-example"))
 
 	// set the maxLength of the cookies stored on the disk to a larger number to prevent issues with:
 	// securecookie: the value is too long
@@ -55,10 +57,35 @@ func main() {
 		google.New(os.Getenv("GOOGLE_KEY"), os.Getenv("GOOGLE_SECRET"), "http://127.0.0.1:8000/auth/callback", scopes...),
 	)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	sessionStore := NewSession(store)
+	todoStore := NewTodoStore()
 	r := chi.NewRouter()
-	mountRoutes(r, sessionStore)
+	mountRoutes(r, sessionStore, todoStore)
+
+	server := http.Server{
+		Addr:    ":8000",
+		Handler: r,
+	}
+
+	go func() {
+		ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
+		defer cancel()
+
+		<-ctx.Done()
+
+		ctx, cancel = context.WithTimeout(ctx, time.Second*10)
+		defer cancel()
+		log.Println("shutting down the server")
+		if err := server.Shutdown(ctx); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	log.Println("listening on localhost:8000")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }

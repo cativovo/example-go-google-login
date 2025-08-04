@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 )
 
 type contextKey string
@@ -21,17 +24,18 @@ func userFromContext(ctx context.Context) User {
 	return u
 }
 
-func auth(store *SessionStore) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			u, err := store.GetUser(r)
-			if err != nil {
-				http.Redirect(w, r, "/auth/login", http.StatusFound)
-				return
-			}
+type humaMiddleware func(ctx huma.Context, next func(huma.Context))
 
-			r = r.WithContext(contextWithUser(r.Context(), u))
-			next.ServeHTTP(w, r)
-		})
+func auth(api huma.API, store *SessionStore) humaMiddleware {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		r, _ := humachi.Unwrap(ctx)
+		u, err := store.GetUser(r)
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+
+		ctx = huma.WithContext(ctx, contextWithUser(r.Context(), u))
+		next(ctx)
 	}
 }
