@@ -2,3 +2,5 @@
 .env*
 # Except .env.sample
 !.env.sample
+
+tmp
