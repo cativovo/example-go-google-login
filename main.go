@@ -15,7 +15,7 @@ import (
 	"github.com/markbates/goth/providers/google"
 )
 
-func setGothicConfig(store *SessionStore) {
+func setGothicConfig(store *SessionStore, cfg config) {
 	scopes := []string{"profile", "email"}
 	goth.UseProviders(
 		google.New(os.Getenv("GOOGLE_KEY"), os.Getenv("GOOGLE_SECRET"), "http://127.0.0.1:8000/auth/callback", scopes...),
@@ -30,11 +30,13 @@ func main() {
 	// fix for -> securecookie: error - caused by: securecookie: error - caused by: gob: type not registered for interface: main.User
 	gob.Register(User{})
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	cfg, err := getConfig()
+	if err != nil {
+		log.Fatal("Failed to get the config: ", err)
+	}
 
 	sessionStore := NewSessionStore()
-	setGothicConfig(sessionStore)
+	setGothicConfig(sessionStore, cfg)
 
 	todoStore := NewTodoStore()
 	router := chi.NewRouter()
@@ -44,6 +46,9 @@ func main() {
 		Addr:    ":8000",
 		Handler: router,
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	go func() {
 		ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill)
